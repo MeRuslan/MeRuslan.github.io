@@ -424,7 +424,7 @@
                     // The sendData function implicitly signals the app can be closed.
                     // Calling close() yourself can sometimes interrupt the data sending process.
                     // If you must close it, do it after a short delay:
-                    // setTimeout(() => tg.close(), 500);
+                    setTimeout(() => tg.close(), 500);
 
                 } catch (error) {
                     // **DEBUGGING STEP:** If anything fails, show an alert
