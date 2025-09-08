@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Channel Setup</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        :root {
+            --bs-body-bg: #f8f9fa;
+            --bs-body-color: #212529;
+            --bs-primary-rgb: 75, 125, 255; /* A soft blue */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--bs-body-color);
+            background-color: var(--bs-body-bg);
+            padding-bottom: 100px; /* Space for fixed footer */
+        }
+
+        .main-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .wizard-step {
+            display: none; /* Hide all steps by default */
+            animation: fadeIn 0.5s;
+        }
+
+        .wizard-step.active {
+            display: block; /* Show active step */
+        }
+
+        .form-label {
+            font-weight: 500;
+        }
+
+        .form-control, .form-select {
+            border-radius: 0.75rem;
+            border: 1px solid #dee2e6;
+            padding: 0.75rem 1rem;
+        }
+
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+            border-color: rgba(var(--bs-primary-rgb), 0.8);
+        }
+
+        .form-check-input:checked {
+            background-color: rgba(var(--bs-primary-rgb), 1);
+            border-color: rgba(var(--bs-primary-rgb), 1);
+        }
+
+        .btn-primary {
+            background-color: rgba(var(--bs-primary-rgb), 1);
+            border: none;
+            font-weight: 500;
+        }
+
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+        }
+
+        .navigation-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #e9ecef;
+            padding: 1rem;
+        }
+
+        .progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .form-text {
+            font-size: 0.85em;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container p-3 p-md-4">
+        <div class="progress mb-4" role="progressbar">
+            <div id="progressBar" class="progress-bar" style="width: 10%"></div>
+        </div>
+
+        <div id="step-1" class="wizard-step active">
+            <h2 class="h4 mb-3">Hello, <span id="username">User</span>! 👋</h2>
+            <p class="text-muted mb-4">Let's set up your new channel. First, what's its name?</p>
+            <div class="mb-3">
+                <label for="channelName" class="form-label">Channel Name</label>
+                <input type="text" class="form-control form-control-lg" id="channelName" placeholder="@animenews">
+            </div>
+        </div>
+
+        <div id="step-2" class="wizard-step">
+            <h2 class="h4 mb-3">Content Sources 🔗</h2>
+            <p class="text-muted mb-4">Enter the URLs of the websites or feeds to monitor. One URL per line.</p>
+            <div class="mb-3">
+                <label for="sources" class="form-label">Source URLs</label>
+                <textarea class="form-control" id="sources" rows="5" placeholder="https://example.com/feed&#10;https://anothersource.com/updates"></textarea>
+            </div>
+        </div>
+
+        <div id="step-3" class="wizard-step">
+            <h2 class="h4 mb-3">Publication Style ✨</h2>
+            <p class="text-muted mb-4">How should the new posts be formatted?</p>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="publicationStyle" id="styleSummary" value="summary" checked>
+                <label class="form-check-label" for="styleSummary">Summary: A brief, AI-generated summary of the source content.</label>
+            </div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="publicationStyle" id="styleTitleLink" value="title_link">
+                <label class="form-check-label" for="styleTitleLink">Title & Link: Just the title of the article and a link.</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="publicationStyle" id="styleFull" value="full_text">
+                <label class="form-check-label" for="styleFull">Full Text: The entire article content (best for short articles).</label>
+            </div>
+        </div>
+
+        <div id="step-4" class="wizard-step">
+            <h2 class="h4 mb-3">Sample Posts ✍️</h2>
+            <p class="text-muted mb-4">Provide a few examples of how you want posts to look. This helps the AI learn your preferred tone and format.</p>
+            <div class="mb-3">
+                <label for="samplePosts" class="form-label">Example Posts</label>
+                <textarea class="form-control" id="samplePosts" rows="5" placeholder="Example 1: 🔥 BIG NEWS! A new update is coming...&#10;&#10;Example 2: Just in: Check out the latest developments here..."></textarea>
+            </div>
+        </div>
+
+        <div id="step-5" class="wizard-step">
+            <h2 class="h4 mb-3">Include Media? 🖼️</h2>
+            <p class="text-muted mb-4">Should the system try to attach a relevant image or video to each post?</p>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="addMedia" id="mediaYes" value="true" checked>
+                <label class="form-check-label" for="mediaYes">Yes, add media when available.</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="addMedia" id="mediaNo" value="false">
+                <label class="form-check-label" for="mediaNo">No, text-only posts.</label>
+            </div>
+        </div>
+
+        <div id="step-6" class="wizard-step">
+            <h2 class="h4 mb-3">Add a Postscript Note? 📝</h2>
+            <p class="text-muted mb-4">Do you want to add a standard signature or note at the end of every post?</p>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="addPsNote" id="psNoteYes" value="true">
+                <label class="form-check-label" for="psNoteYes">Yes, add a note.</label>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" name="addPsNote" id="psNoteNo" value="false" checked>
+                <label class="form-check-label" for="psNoteNo">No, thank you.</label>
+            </div>
+            <div id="psNoteInputContainer" class="hidden">
+                <label for="psNoteText" class="form-label">Your Note</label>
+                <textarea class="form-control" id="psNoteText" rows="3" placeholder="e.g., Follow @mychannel for more!"></textarea>
+            </div>
+        </div>
+
+        <div id="step-7" class="wizard-step">
+            <h2 class="h4 mb-3">Operating Mode ⚙️</h2>
+            <p class="text-muted mb-4">Choose how you want to manage your publications.</p>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="operatingMode" id="modeAuto" value="auto" checked>
+                <label class="form-check-label" for="modeAuto"><strong>Automatic:</strong> Posts are published automatically based on your schedule.</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="operatingMode" id="modeReview" value="review">
+                <label class="form-check-label" for="modeReview"><strong>Review:</strong> New posts are sent to you as drafts to approve before publishing.</label>
+            </div>
+        </div>
+
+        <div id="step-8-auto" class="wizard-step">
+            <h2 class="h4 mb-3">Automatic Schedule 🗓️</h2>
+            <p class="text-muted mb-4">Configure the timing for automatic posting.</p>
+            <div class="mb-3">
+                <label for="syncScheduleAuto" class="form-label">Check Sources For New Content</label>
+                <select class="form-select" id="syncScheduleAuto">
+                    <option value="1h">Every hour</option>
+                    <option value="3h">Every 3 hours</option>
+                    <option value="5h">Every 5 hours</option>
+                    <option value="24h">Once a day</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="minInterval" class="form-label">Minimum Interval Between Posts</label>
+                <select class="form-select" id="minInterval">
+                    <option value="30m">30 minutes</option>
+                    <option value="1h">1 hour</option>
+                    <option value="2h">2 hours</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="maxPosts" class="form-label">Maximum Posts Per Day</label>
+                <select class="form-select" id="maxPosts">
+                    <option value="3">3 posts</option>
+                    <option value="5">5 posts</option>
+                    <option value="7">7 posts</option>
+                    <option value="9">9 posts</option>
+                    <option value="unlimited">Unlimited</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="step-8-review" class="wizard-step">
+            <h2 class="h4 mb-3">Review Schedule 🗓️</h2>
+            <p class="text-muted mb-4">How often should we check for new content to send you for review?</p>
+            <div class="mb-3">
+                <label for="syncScheduleReview" class="form-label">Check Sources For New Content</label>
+                <select class="form-select" id="syncScheduleReview">
+                    <option value="1h">Every hour</option>
+                    <option value="3h">Every 3 hours</option>
+                    <option value="5h">Every 5 hours</option>
+                    <option value="24h">Once a day</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="step-9" class="wizard-step text-center">
+            <h2 class="h4 mb-3">All Set! 🎉</h2>
+            <p class="text-muted">You've configured your channel. Click Finish to save the settings and send them to the bot.</p>
+        </div>
+
+    </div>
+
+    <footer class="navigation-footer">
+        <div class="d-flex justify-content-between align-items-center main-container mx-auto">
+            <button id="prevBtn" class="btn btn-secondary" style="visibility: hidden;">Previous</button>
+            <button id="nextBtn" class="btn btn-primary btn-lg">Next</button>
+            <button id="finishBtn" class="btn btn-primary btn-lg hidden">Finish</button>
+        </div>
+    </footer>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- TELEGRAM WEBAPP SETUP ---
+            const tg = window.Telegram.WebApp;
+            tg.ready(); // Inform Telegram the app is ready
+            tg.expand(); // Expand the app to full height
+
+            // Set user's name, with a fallback for local testing
+            const user = tg.initDataUnsafe?.user;
+            if (user?.first_name) {
+                document.getElementById('username').textContent = user.first_name;
+            }
+
+            // --- WIZARD LOGIC ---
+            const steps = Array.from(document.querySelectorAll('.wizard-step'));
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const finishBtn = document.getElementById('finishBtn');
+            const progressBar = document.getElementById('progressBar');
+
+            let currentStep = 0;
+            const totalSteps = 9; // Total number of logical steps
+
+            const updateUI = () => {
+                // Update progress bar
+                progressBar.style.width = `${((currentStep + 1) / totalSteps) * 100}%`;
+
+                // Show/hide steps
+                steps.forEach((step, index) => {
+                    // We need a special way to identify which step is active
+                    const stepId = step.getAttribute('id');
+                    const isActive = document.querySelector('.wizard-step.active').getAttribute('id') === stepId;
+                    if (isActive) {
+                         step.classList.add('active');
+                    } else {
+                         step.classList.remove('active');
+                    }
+                });
+
+                // Update button visibility
+                prevBtn.style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+
+                const activeStepId = document.querySelector('.wizard-step.active').id;
+                if (activeStepId === 'step-9') {
+                    nextBtn.classList.add('hidden');
+                    finishBtn.classList.remove('hidden');
+                } else {
+                    nextBtn.classList.remove('hidden');
+                    finishBtn.classList.add('hidden');
+                }
+            };
+
+            const showStep = (stepIndexOrId) => {
+                document.querySelector('.wizard-step.active').classList.remove('active');
+                if (typeof stepIndexOrId === 'number') {
+                    steps[stepIndexOrId].classList.add('active');
+                    currentStep = steps.findIndex(step => step.id === steps[stepIndexOrId].id);
+                } else {
+                    document.getElementById(stepIndexOrId).classList.add('active');
+                    currentStep = steps.findIndex(step => step.id === stepIndexOrId);
+                }
+                updateUI();
+            };
+
+            nextBtn.addEventListener('click', () => {
+                let nextStepId = '';
+                const activeStepId = document.querySelector('.wizard-step.active').id;
+
+                if (activeStepId === 'step-7') {
+                    // Conditional step based on mode selection
+                    const mode = document.querySelector('input[name="operatingMode"]:checked').value;
+                    nextStepId = (mode === 'auto') ? 'step-8-auto' : 'step-8-review';
+                    showStep(nextStepId);
+                } else if (activeStepId === 'step-8-auto' || activeStepId === 'step-8-review') {
+                    showStep('step-9');
+                }
+                else {
+                    if (currentStep < steps.length - 1) {
+                       currentStep++;
+                       const nextStep = steps.find(step => !step.id.includes('auto') && !step.id.includes('review') && steps.indexOf(step) === currentStep);
+                       if (nextStep) showStep(steps.indexOf(nextStep));
+                    }
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                const activeStepId = document.querySelector('.wizard-step.active').id;
+
+                if (activeStepId === 'step-8-auto' || activeStepId === 'step-8-review') {
+                    showStep('step-7');
+                } else if (activeStepId === 'step-9') {
+                    const mode = document.querySelector('input[name="operatingMode"]:checked').value;
+                    const prevStepId = (mode === 'auto') ? 'step-8-auto' : 'step-8-review';
+                    showStep(prevStepId);
+                }
+                else {
+                    if (currentStep > 0) {
+                        currentStep--;
+                        const prevStep = steps.find(step => !step.id.includes('auto') && !step.id.includes('review') && steps.indexOf(step) === currentStep);
+                        if (prevStep) showStep(steps.indexOf(prevStep));
+                    }
+                }
+            });
+
+            // --- CONDITIONAL INPUT LOGIC ---
+            const psNoteRadios = document.querySelectorAll('input[name="addPsNote"]');
+            const psNoteInputContainer = document.getElementById('psNoteInputContainer');
+            psNoteRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if (e.target.value === 'true') {
+                        psNoteInputContainer.classList.remove('hidden');
+                    } else {
+                        psNoteInputContainer.classList.add('hidden');
+                    }
+                });
+            });
+
+            // --- DATA SUBMISSION ---
+            finishBtn.addEventListener('click', () => {
+                // 1. Gather all data into an object
+                const mode = document.querySelector('input[name="operatingMode"]:checked').value;
+                const psNoteEnabled = document.querySelector('input[name="addPsNote"]:checked').value === 'true';
+
+                const collectedData = {
+                    channelName: document.getElementById('channelName').value,
+                    sources: document.getElementById('sources').value.split('\n').filter(url => url.trim() !== ''),
+                    publicationStyle: document.querySelector('input[name="publicationStyle"]:checked').value,
+                    samplePosts: document.getElementById('samplePosts').value,
+                    addMedia: document.querySelector('input[name="addMedia"]:checked').value === 'true',
+                    postscript: {
+                        enabled: psNoteEnabled,
+                        text: psNoteEnabled ? document.getElementById('psNoteText').value : null,
+                    },
+                    mode: mode,
+                    schedule: {},
+                };
+
+                if (mode === 'auto') {
+                    collectedData.schedule = {
+                        sync: document.getElementById('syncScheduleAuto').value,
+                        minInterval: document.getElementById('minInterval').value,
+                        maxPostsPerDay: document.getElementById('maxPosts').value,
+                    };
+                } else { // review mode
+                    collectedData.schedule = {
+                        sync: document.getElementById('syncScheduleReview').value,
+                    };
+                }
+
+                // 2. Convert to JSON string
+                const jsonData = JSON.stringify(collectedData, null, 2); // Pretty print JSON
+
+                // 3. Send data to Telegram bot
+                tg.sendData(jsonData);
+
+                // 4. Optionally close the mini app
+                // tg.close();
+            });
+
+            // Initial UI setup
+            updateUI();
+        });
+    </script>
+</body>
+</html>
