@@ -373,45 +373,68 @@
 
             // --- DATA SUBMISSION ---
             finishBtn.addEventListener('click', () => {
-                // 1. Gather all data into an object
-                const mode = document.querySelector('input[name="operatingMode"]:checked').value;
-                const psNoteEnabled = document.querySelector('input[name="addPsNote"]:checked').value === 'true';
+                // Change button text to show activity
+                finishBtn.textContent = 'Sending...';
+                finishBtn.disabled = true;
 
-                const collectedData = {
-                    channelName: document.getElementById('channelName').value,
-                    sources: document.getElementById('sources').value.split('\n').filter(url => url.trim() !== ''),
-                    publicationStyle: document.querySelector('input[name="publicationStyle"]:checked').value,
-                    samplePosts: document.getElementById('samplePosts').value,
-                    addMedia: document.querySelector('input[name="addMedia"]:checked').value === 'true',
-                    postscript: {
-                        enabled: psNoteEnabled,
-                        text: psNoteEnabled ? document.getElementById('psNoteText').value : null,
-                    },
-                    mode: mode,
-                    schedule: {},
-                };
+                try {
+                    // 1. Gather all data into an object
+                    const mode = document.querySelector('input[name="operatingMode"]:checked').value;
+                    const psNoteEnabled = document.querySelector('input[name="addPsNote"]:checked').value === 'true';
 
-                if (mode === 'auto') {
-                    collectedData.schedule = {
-                        sync: document.getElementById('syncScheduleAuto').value,
-                        minInterval: document.getElementById('minInterval').value,
-                        maxPostsPerDay: document.getElementById('maxPosts').value,
+                    const collectedData = {
+                        channelName: document.getElementById('channelName').value,
+                        sources: document.getElementById('sources').value.split('\n').filter(url => url.trim() !== ''),
+                        publicationStyle: document.querySelector('input[name="publicationStyle"]:checked').value,
+                        samplePosts: document.getElementById('samplePosts').value,
+                        addMedia: document.querySelector('input[name="addMedia"]:checked').value === 'true',
+                        postscript: {
+                            enabled: psNoteEnabled,
+                            text: psNoteEnabled ? document.getElementById('psNoteText').value : null,
+                        },
+                        mode: mode,
+                        schedule: {},
                     };
-                } else { // review mode
-                    collectedData.schedule = {
-                        sync: document.getElementById('syncScheduleReview').value,
-                    };
+
+                    if (mode === 'auto') {
+                        collectedData.schedule = {
+                            sync: document.getElementById('syncScheduleAuto').value,
+                            minInterval: document.getElementById('minInterval').value,
+                            maxPostsPerDay: document.getElementById('maxPosts').value,
+                        };
+                    } else { // review mode
+                        collectedData.schedule = {
+                            sync: document.getElementById('syncScheduleReview').value,
+                        };
+                    }
+                    
+                    // 2. Convert to JSON string
+                    const jsonData = JSON.stringify(collectedData, null, 2);
+
+                    // **DEBUGGING STEP:** Log the data to the console
+                    console.log("Attempting to send data:", jsonData);
+
+                    // 3. Send data to Telegram bot
+                    // This function only works when the page is opened inside Telegram
+                    tg.sendData(jsonData);
+                    
+                    // 4. IMPORTANT: Do not call tg.close() immediately.
+                    // The sendData function implicitly signals the app can be closed.
+                    // Calling close() yourself can sometimes interrupt the data sending process.
+                    // If you must close it, do it after a short delay:
+                    // setTimeout(() => tg.close(), 500);
+
+                } catch (error) {
+                    // **DEBUGGING STEP:** If anything fails, show an alert
+                    console.error("Failed to send data:", error);
+                    alert("Error: Could not send data. \n\n" + error.message + "\n\nThis usually means you are not running the app inside Telegram.");
+                    
+                    // Re-enable the button if it failed
+                    finishBtn.textContent = 'Finish';
+                    finishBtn.disabled = false;
                 }
-
-                // 2. Convert to JSON string
-                const jsonData = JSON.stringify(collectedData, null, 2); // Pretty print JSON
-
-                // 3. Send data to Telegram bot
-                tg.sendData(jsonData);
-
-                // 4. Optionally close the mini app
-                // tg.close();
             });
+
 
             // Initial UI setup
             updateUI();
