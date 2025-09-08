@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Channel Wizard · Telegram Mini App</title>
+  <!-- Minimal, sexy, mobile-first light theme -->
+  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.min.css">
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --brand: #2b65ff;
+      --bg-soft: #f7f8fb;
+      --muted: #8a8f98;
+    }
+    body{ background: var(--bg-soft); }
+    main{ max-width: 720px; margin: 0 auto; padding: 1rem; }
+    .card{ background:#fff; border-radius: 18px; box-shadow: 0 8px 28px rgba(18,38,63,.08); padding: 1.25rem; }
+    .header{ display:flex; align-items:center; gap:.75rem; padding:.5rem 0 1rem; }
+    .logo{ width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--brand),#7ab8ff); display:grid; place-items:center; color:#fff; font-weight:800; }
+    h1{ font-size:1.25rem; margin:0; }
+    .subtitle{ color:var(--muted); font-size:.95rem; }
+
+    /* Progress */
+    .progress-wrap{ background:#eef1f6; border-radius:999px; height:10px; overflow:hidden; }
+    .progress{ height:100%; width:0%; background:linear-gradient(90deg,var(--brand),#69a3ff); transition:width .25s ease; }
+    .step-indicator{ color:var(--muted); font-size:.9rem; display:flex; justify-content:space-between; margin-top:.5rem; }
+
+    /* Nav buttons */
+    .nav{ display:flex; gap:.75rem; justify-content:space-between; margin-top:.75rem; }
+    .nav .spacer{ flex:1; }
+    .nav button{ border-radius:12px; padding:.9rem 1.1rem; font-weight:600; }
+
+    /* Inputs */
+    label{ font-weight:600; }
+    input, textarea, select { font-size:16px; border-radius:12px; }
+    textarea{ min-height:120px; }
+
+    /* Sources chips */
+    .chips{ display:flex; flex-wrap:wrap; gap:.5rem; margin:.5rem 0 0; }
+    .chip{ background:#f0f4ff; color:#244; border:1px solid #e1e8ff; padding:.5rem .75rem; border-radius:999px; display:flex; align-items:center; gap:.5rem; }
+    .chip button{ border:none; background:transparent; font-weight:700; cursor:pointer; line-height:1; padding:0 .25rem; }
+
+    .muted{ color:var(--muted); }
+    .hidden{ display:none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="header">
+      <div class="logo">CW</div>
+      <div>
+        <h1>Channel Wizard</h1>
+        <p class="subtitle" id="hello">Hello!</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="progress-wrap" aria-hidden="true"><div class="progress" id="progress"></div></div>
+      <div class="step-indicator"><span id="stepLabel">Step 1</span><span id="stepTotal">of 9</span></div>
+
+      <!-- Steps container -->
+      <form id="wizard" onsubmit="return false">
+
+        <!-- Step 1: Channel name -->
+        <section data-step="1" class="step">
+          <hgroup>
+            <h3>Channel name</h3>
+            <p class="muted">Use your @handle, e.g. <code>@animenews</code>.</p>
+          </hgroup>
+          <label for="channel">@ Handle</label>
+          <input id="channel" name="channel" placeholder="@yourchannel" inputmode="twitter" autocomplete="off" required />
+        </section>
+
+        <!-- Step 2: Sources list -->
+        <section data-step="2" class="step hidden">
+          <hgroup>
+            <h3>Sources</h3>
+            <p class="muted">Add one or more HTTPS URLs. Press Enter to add.</p>
+          </hgroup>
+          <input id="sourceInput" placeholder="https://example.com/rss" />
+          <div class="chips" id="sourcesChips"></div>
+          <small class="muted">Tip: paste a URL and press Enter. Must start with <code>https://</code>.</small>
+        </section>
+
+        <!-- Step 3: Style of publications -->
+        <section data-step="3" class="step hidden">
+          <hgroup>
+            <h3>Publication style</h3>
+            <p class="muted">Choose a preset or write your own.</p>
+          </hgroup>
+          <label for="styleSelect">Preset</label>
+          <select id="styleSelect">
+            <option value="headlines">Short headlines (+ link)</option>
+            <option value="digest">Daily digest (bulleted)</option>
+            <option value="summary">Concise summary (2–3 sentences)</option>
+            <option value="casual">Casual tone</option>
+            <option value="formal">Formal tone</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <label for="styleCustom" id="styleCustomLabel" class="hidden">Custom style</label>
+          <textarea id="styleCustom" class="hidden" placeholder="Describe the style you want…"></textarea>
+        </section>
+
+        <!-- Step 4: Sample posts -->
+        <section data-step="4" class="step hidden">
+          <hgroup>
+            <h3>Sample posts</h3>
+            <p class="muted">Optional. One per line.</p>
+          </hgroup>
+          <textarea id="samples" placeholder="Example post 1\nExample post 2\n…"></textarea>
+        </section>
+
+        <!-- Step 5: Add media -->
+        <section data-step="5" class="step hidden">
+          <hgroup>
+            <h3>Add media to posts?</h3>
+            <p class="muted">Include images/videos when available.</p>
+          </hgroup>
+          <label>
+            <input type="checkbox" role="switch" id="addMedia"> Include media
+          </label>
+        </section>
+
+        <!-- Step 6: PS note -->
+        <section data-step="6" class="step hidden">
+          <hgroup>
+            <h3>PS note</h3>
+            <p class="muted">Append a short note to each post.</p>
+          </hgroup>
+          <label>
+            <input type="checkbox" role="switch" id="psEnabled"> Add a PS note
+          </label>
+          <label for="psNote" id="psLabel" class="hidden">Your PS note</label>
+          <textarea id="psNote" class="hidden" maxlength="200" placeholder="e.g., Follow @yourchannel for more! (max 200 chars)"></textarea>
+        </section>
+
+        <!-- Step 7: Mode -->
+        <section data-step="7" class="step hidden">
+          <hgroup>
+            <h3>Mode</h3>
+            <p class="muted">Automatic posting or manual review.</p>
+          </hgroup>
+          <fieldset>
+            <label><input type="radio" name="mode" value="auto" checked> Auto</label>
+            <label><input type="radio" name="mode" value="review"> Review</label>
+          </fieldset>
+        </section>
+
+        <!-- Step 8: Source sync schedule (both modes) -->
+        <section data-step="8" class="step hidden">
+          <hgroup>
+            <h3>Source sync schedule</h3>
+            <p class="muted">How often to check sources.</p>
+          </hgroup>
+          <select id="syncSchedule">
+            <option value="1h">Once per hour</option>
+            <option value="3h">Every 3 hours</option>
+            <option value="5h">Every 5 hours</option>
+            <option value="1d">Daily</option>
+          </select>
+        </section>
+
+        <!-- Step 9: Auto-only · Min interval between posts -->
+        <section data-step="9" class="step hidden" id="autoOnlyMin">
+          <hgroup>
+            <h3>Min interval between posts</h3>
+            <p class="muted">Auto mode only.</p>
+          </hgroup>
+          <select id="minInterval">
+            <option value="30m">30 mins</option>
+            <option value="1h">1 hour</option>
+            <option value="2h">2 hours</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <label for="minIntervalCustom" id="minIntervalLabel" class="hidden">Custom minutes</label>
+          <input id="minIntervalCustom" class="hidden" type="number" min="5" step="5" placeholder="e.g. 45" />
+        </section>
+
+        <!-- Step 10: Auto-only · Max posts per day -->
+        <section data-step="10" class="step hidden" id="autoOnlyMax">
+          <hgroup>
+            <h3>Max posts per day</h3>
+            <p class="muted">Auto mode only.</p>
+          </hgroup>
+          <select id="maxPerDay">
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="7">7</option>
+            <option value="9">9</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <label for="maxPerDayCustom" id="maxPerDayLabel" class="hidden">Custom number</label>
+          <input id="maxPerDayCustom" class="hidden" type="number" min="1" step="1" placeholder="e.g. 12" />
+        </section>
+
+        <!-- Final screen: Preview (desktop/dev only) -->
+        <section data-step="11" class="step hidden" id="previewStep">
+          <hgroup>
+            <h3>All set!</h3>
+            <p class="muted">We will send this JSON to your bot.</p>
+          </hgroup>
+          <pre id="jsonPreview" style="background:#0f172a; color:#e2e8f0; padding:1rem; border-radius:12px; overflow:auto;"></pre>
+          <button id="copyBtn" class="secondary">Copy JSON (dev)</button>
+        </section>
+
+        <div class="nav">
+          <button type="button" id="backBtn" class="secondary">Back</button>
+          <span class="spacer"></span>
+          <button type="button" id="nextBtn">Next</button>
+        </div>
+      </form>
+    </div>
+
+    <p class="muted" style="margin:.75rem .25rem 0; text-align:center">Mobile‑first · Light theme · Works inside Telegram or standalone</p>
+  </main>
+
+<script>
+(function(){
+  const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  const isTG = !!tg;
+  if(isTG){
+    tg.ready();
+    try{ tg.expand(); }catch(_){ }
+  }
+
+  // Greeting with username
+  const user = isTG ? (tg.initDataUnsafe?.user || {}) : { username: 'dev_user' };
+  const username = user.username ? '@'+user.username : (user.first_name || 'friend');
+  document.getElementById('hello').textContent = `Hello ${username} — let\'s set up your channel.`;
+
+  // Elements
+  const steps = Array.from(document.querySelectorAll('.step'));
+  const nextBtn = document.getElementById('nextBtn');
+  const backBtn = document.getElementById('backBtn');
+  const progress = document.getElementById('progress');
+  const stepLabel = document.getElementById('stepLabel');
+  const stepTotal = document.getElementById('stepTotal');
+
+  // Inputs
+  const channelEl = document.getElementById('channel');
+  const sourceInput = document.getElementById('sourceInput');
+  const sourcesChips = document.getElementById('sourcesChips');
+  const styleSelect = document.getElementById('styleSelect');
+  const styleCustom = document.getElementById('styleCustom');
+  const styleCustomLabel = document.getElementById('styleCustomLabel');
+  const samplesEl = document.getElementById('samples');
+  const addMediaEl = document.getElementById('addMedia');
+  const psEnabledEl = document.getElementById('psEnabled');
+  const psNoteEl = document.getElementById('psNote');
+  const psLabel = document.getElementById('psLabel');
+  const modeRadios = () => Array.from(document.querySelectorAll('input[name="mode"]'));
+  const syncSchedule = document.getElementById('syncSchedule');
+  const minInterval = document.getElementById('minInterval');
+  const minIntervalCustom = document.getElementById('minIntervalCustom');
+  const minIntervalLabel = document.getElementById('minIntervalLabel');
+  const maxPerDay = document.getElementById('maxPerDay');
+  const maxPerDayCustom = document.getElementById('maxPerDayCustom');
+  const maxPerDayLabel = document.getElementById('maxPerDayLabel');
+  const autoOnlyMin = document.getElementById('autoOnlyMin');
+  const autoOnlyMax = document.getElementById('autoOnlyMax');
+  const previewStep = document.getElementById('previewStep');
+  const jsonPreview = document.getElementById('jsonPreview');
+  const copyBtn = document.getElementById('copyBtn');
+
+  // State
+  let current = 1;
+  let sources = [];
+
+  const autoStepsTotal = 11; // includes preview
+  const reviewStepsTotal = 9; // skips step 9–10; preview becomes step 9
+
+  function isAuto(){
+    const r = modeRadios().find(r=>r.checked);
+    return (r?.value||'auto')==='auto';
+  }
+
+  function totalSteps(){ return isAuto() ? autoStepsTotal : reviewStepsTotal; }
+
+  function showStep(n){
+    // Toggle which sections are visible according to mode
+    const auto = isAuto();
+    autoOnlyMin.classList.toggle('hidden', !auto);
+    autoOnlyMax.classList.toggle('hidden', !auto);
+
+    // Compute which index maps to which section when in review mode
+    steps.forEach(sec=>sec.classList.add('hidden'));
+
+    // Step mapping
+    let targetStep = n;
+    if(!auto){
+      // collapse steps 9 and 10; preview is step 9 in review
+      if(n >= 9 && n <= 10) targetStep = 11; // send to preview
+    }
+
+    const sec = document.querySelector(`[data-step="${targetStep}"]`);
+    if(sec){ sec.classList.remove('hidden'); }
+
+    // Nav + progress
+    backBtn.disabled = (n===1);
+    nextBtn.textContent = (n === totalSteps()) ? (isTG? 'Send to Bot' : 'Finish') : 'Next';
+
+    const pct = Math.round((n-1) / (totalSteps()-1) * 100);
+    progress.style.width = pct + '%';
+    stepLabel.textContent = `Step ${n}`;
+    stepTotal.textContent = `of ${totalSteps()-1}`; // hide preview from total count label
+
+    // MainButton in Telegram
+    if(isTG){
+      tg.MainButton.setText(nextBtn.textContent);
+      tg.MainButton.show();
+    }
+  }
+
+  function addSource(url){
+    url = (url||'').trim();
+    if(!/^https:\/\//i.test(url)){ notify('URL must start with https://'); return; }
+    try{ new URL(url); }catch(_){ notify('Invalid URL'); return; }
+    if(sources.includes(url)){ notify('Already added'); return; }
+    sources.push(url);
+    renderChips();
+  }
+
+  function removeSource(url){
+    sources = sources.filter(s=>s!==url);
+    renderChips();
+  }
+
+  function renderChips(){
+    sourcesChips.innerHTML = '';
+    sources.forEach(u=>{
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = `<span>${u}</span>`;
+      const b = document.createElement('button');
+      b.type='button'; b.setAttribute('aria-label','Remove'); b.textContent='×';
+      b.addEventListener('click',()=>removeSource(u));
+      chip.appendChild(b);
+      sourcesChips.appendChild(chip);
+    });
+  }
+
+  function notify(msg){
+    if(isTG){ tg.showPopup({ title:'Notice', message: msg, buttons:[{id:'ok', type:'default', text:'OK'}] }); }
+    else { alert(msg); }
+  }
+
+  // Handlers
+  sourceInput.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      addSource(sourceInput.value);
+      sourceInput.value='';
+    }
+  });
+
+  styleSelect.addEventListener('change', ()=>{
+    const custom = styleSelect.value==='custom';
+    styleCustom.classList.toggle('hidden', !custom);
+    styleCustomLabel.classList.toggle('hidden', !custom);
+  });
+
+  psEnabledEl.addEventListener('change', ()=>{
+    const on = psEnabledEl.checked;
+    psNoteEl.classList.toggle('hidden', !on);
+    psLabel.classList.toggle('hidden', !on);
+  });
+
+  minInterval.addEventListener('change', ()=>{
+    const c = minInterval.value==='custom';
+    minIntervalCustom.classList.toggle('hidden', !c);
+    minIntervalLabel.classList.toggle('hidden', !c);
+  });
+
+  maxPerDay.addEventListener('change', ()=>{
+    const c = maxPerDay.value==='custom';
+    maxPerDayCustom.classList.toggle('hidden', !c);
+    maxPerDayLabel.classList.toggle('hidden', !c);
+  });
+
+  // Validation per step
+  function validateStep(n){
+    if(n===1){
+      let v = channelEl.value.trim();
+      if(!v){ notify('Enter channel handle'); return false; }
+      if(!v.startsWith('@')) v='@'+v; // normalize
+      channelEl.value = v;
+      return true;
+    }
+    if(n===2){
+      if(sources.length===0){ notify('Add at least one source URL'); return false; }
+      return true;
+    }
+    if(n===3){
+      if(styleSelect.value==='custom' && !styleCustom.value.trim()){
+        notify('Describe your custom style'); return false;
+      }
+      return true;
+    }
+    if(n===6){
+      if(psEnabledEl.checked){
+        if(!psNoteEl.value.trim()){ notify('Enter your PS note or disable it'); return false; }
+      }
+      return true;
+    }
+    if(n===9 && isAuto()){
+      if(minInterval.value==='custom'){
+        const v = Number(minIntervalCustom.value);
+        if(!v || v<5){ notify('Custom interval must be ≥ 5 minutes'); return false; }
+      }
+      return true;
+    }
+    if(n===10 && isAuto()){
+      if(maxPerDay.value==='custom'){
+        const v = Number(maxPerDayCustom.value);
+        if(!v || v<1){ notify('Custom max posts must be ≥ 1'); return false; }
+      }
+      return true;
+    }
+    return true;
+  }
+
+  function collect(){
+    const mode = isAuto() ? 'auto' : 'review';
+
+    const style = (styleSelect.value==='custom') ? { preset:'custom', description: styleCustom.value.trim() } : { preset: styleSelect.value };
+
+    const samples = samplesEl.value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+
+    const payload = {
+      version: 1,
+      user: {
+        id: user.id || null,
+        username: user.username || null,
+        first_name: user.first_name || null,
+        last_name: user.last_name || null,
+        language_code: user.language_code || null,
+      },
+      channel_name: channelEl.value.trim(),
+      sources: sources.slice(0),
+      publication_style: style,
+      sample_posts: samples,
+      add_media: !!addMediaEl.checked,
+      ps_note_enabled: !!psEnabledEl.checked,
+      ps_note: psEnabledEl.checked ? psNoteEl.value.trim() : null,
+      mode: mode,
+      schedule: { source_sync: syncSchedule.value },
+      auto_options: mode==='auto' ? {
+        min_interval: (minInterval.value==='custom') ? `${Number(minIntervalCustom.value)}m` : minInterval.value,
+        max_posts_per_day: (maxPerDay.value==='custom') ? Number(maxPerDayCustom.value) : Number(maxPerDay.value),
+      } : null,
+    };
+    return payload;
+  }
+
+  function sendToBot(){
+    const data = JSON.stringify(collect());
+    if(isTG){
+      try{
+        tg.sendData(data); // The bot receives this via web_app_data
+        tg.close();
+      }catch(err){
+        notify('Failed to send to bot: '+(err?.message||err));
+      }
+    }else{
+      // Dev preview
+      jsonPreview.textContent = pretty(data);
+      previewStep.classList.remove('hidden');
+      notify('Running outside Telegram — showing JSON preview instead.');
+    }
+  }
+
+  function pretty(s){
+    try{ return JSON.stringify(JSON.parse(s), null, 2); }catch(_){ return s; }
+  }
+
+  nextBtn.addEventListener('click', ()=>{
+    const last = totalSteps();
+    if(!validateStep(current)) return;
+    if(current >= last){
+      sendToBot();
+    }else{
+      current += 1;
+      if(current === last){ // prepare preview when not in TG
+        if(!isTG){ jsonPreview.textContent = pretty(JSON.stringify(collect())); }
+      }
+      showStep(current);
+    }
+  });
+
+  backBtn.addEventListener('click', ()=>{
+    if(current>1){ current -= 1; showStep(current); }
+  });
+
+  if(isTG){
+    tg.MainButton.onClick(()=>{
+      nextBtn.click();
+    });
+    // optional back button in TG header
+    try{
+      tg.BackButton.show();
+      tg.BackButton.onClick(()=> backBtn.click());
+    }catch(_){ }
+  }
+
+  copyBtn.addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(JSON.stringify(collect()));
+      notify('JSON copied to clipboard');
+    }catch(_){ notify('Clipboard not available'); }
+  });
+
+  // Init first step
+  showStep(current);
+})();
+</script>
+</body>
+</html>
