@@ -407,7 +407,7 @@
                             sync: document.getElementById('syncScheduleReview').value,
                         };
                     }
-                    
+
                     // 2. Convert to JSON string
                     const jsonData = JSON.stringify(collectedData, null, 2);
 
@@ -416,8 +416,10 @@
 
                     // 3. Send data to Telegram bot
                     // This function only works when the page is opened inside Telegram
+                    console.log("Tg object:", tg);
+
                     tg.sendData(jsonData);
-                    
+
                     // 4. IMPORTANT: Do not call tg.close() immediately.
                     // The sendData function implicitly signals the app can be closed.
                     // Calling close() yourself can sometimes interrupt the data sending process.
@@ -428,7 +430,7 @@
                     // **DEBUGGING STEP:** If anything fails, show an alert
                     console.error("Failed to send data:", error);
                     alert("Error: Could not send data. \n\n" + error.message + "\n\nThis usually means you are not running the app inside Telegram.");
-                    
+
                     // Re-enable the button if it failed
                     finishBtn.textContent = 'Finish';
                     finishBtn.disabled = false;
